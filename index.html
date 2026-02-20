@@ -216,12 +216,23 @@
       font-weight: 800;
     }
 
-    .visit-toggle {
-      width: 16px;
-      height: 16px;
-      accent-color: var(--accent-2);
-      cursor: pointer;
+    .visit-status {
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: rgba(10, 16, 34, 0.68);
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 0.76rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
       flex: 0 0 auto;
+    }
+
+    .country.visited .visit-status {
+      color: #061c15;
+      border-color: var(--accent-2);
+      background: var(--accent-2);
+      font-weight: 700;
     }
 
     .modal {
@@ -314,7 +325,7 @@
       <p class="subtitle">
         Organized by continent. Click any country to reveal locations
       </p>
-      <p class="subtitle-note">Check a country to mark it as visited.</p>
+      <p class="subtitle-note">Visited countries are shown as locked labels.</p>
       <div class="search-wrap">
         <label class="search-label" for="countrySearch">Find a country</label>
         <div class="search-field">
@@ -491,8 +502,6 @@
     const modalCountryTitle = document.getElementById("modalCountryTitle");
     const modalCountryInfo = document.getElementById("modalCountryInfo");
     const modalCityList = document.getElementById("modalCityList");
-    const visitedStorageKey = "travelChecklistVisitedCountries";
-    const visitedLocationsStorageKey = "travelChecklistVisitedLocations";
     let lastTriggerButton = null;
 
     const defaultVisitedCountries = new Set(["United States", "United Kingdom", "Canada"]);
@@ -611,12 +620,7 @@
       "Canada": ["Ontario", "Quebec"]
     };
 
-    const hasStoredVisitedCountries = localStorage.getItem(visitedStorageKey) !== null;
-    const storedVisitedCountries = JSON.parse(localStorage.getItem(visitedStorageKey) || "[]");
-    const visitedCountries = new Set(hasStoredVisitedCountries ? storedVisitedCountries : [...defaultVisitedCountries]);
-
-    const hasStoredVisitedLocations = localStorage.getItem(visitedLocationsStorageKey) !== null;
-    const storedVisitedLocationsRaw = JSON.parse(localStorage.getItem(visitedLocationsStorageKey) || "{}");
+    const visitedCountries = new Set([...defaultVisitedCountries]);
     const visitedLocationsByCountry = {};
 
     function normalizeName(value) {
@@ -636,30 +640,12 @@
       }
     }
 
-    if (!hasStoredVisitedLocations) {
-      for (const [countryName, locations] of Object.entries(defaultVisitedLocations)) {
-        hydrateCountryLocations(countryName, locations);
-      }
-    }
-
-    for (const [countryName, locations] of Object.entries(storedVisitedLocationsRaw)) {
+    for (const [countryName, locations] of Object.entries(defaultVisitedLocations)) {
       hydrateCountryLocations(countryName, locations);
     }
 
     function hasVisitedLocations(countryName) {
       return (visitedLocationsByCountry[countryName]?.size || 0) > 0;
-    }
-
-    function saveVisitedCountries() {
-      localStorage.setItem(visitedStorageKey, JSON.stringify([...visitedCountries]));
-    }
-
-    function saveVisitedLocations() {
-      const serializable = {};
-      for (const [countryName, locationSet] of Object.entries(visitedLocationsByCountry)) {
-        serializable[countryName] = [...locationSet];
-      }
-      localStorage.setItem(visitedLocationsStorageKey, JSON.stringify(serializable));
     }
 
     function openCountryModal(country, triggerButton) {
@@ -701,9 +687,6 @@
       }
     }
 
-    saveVisitedCountries();
-    saveVisitedLocations();
-
     for (const section of travelData) {
       const continentEl = document.createElement("section");
       continentEl.className = "continent";
@@ -723,27 +706,11 @@
           countryCard.classList.add("visited");
         }
 
-        const visitToggle = document.createElement("input");
-        visitToggle.className = "visit-toggle";
-        visitToggle.type = "checkbox";
-        visitToggle.checked = visitedCountries.has(country.name) || hasVisitedLocations(country.name);
-        visitToggle.ariaLabel = `Mark ${country.name} as visited`;
-
-        visitToggle.addEventListener("change", () => {
-          if (visitToggle.checked) {
-            visitedCountries.add(country.name);
-          } else {
-            visitedCountries.delete(country.name);
-          }
-
-          if (visitedCountries.has(country.name) || hasVisitedLocations(country.name)) {
-            countryCard.classList.add("visited");
-          } else {
-            countryCard.classList.remove("visited");
-          }
-
-          saveVisitedCountries();
-        });
+        const visitStatus = document.createElement("span");
+        visitStatus.className = "visit-status";
+        visitStatus.textContent = visitedCountries.has(country.name) || hasVisitedLocations(country.name)
+          ? "Visited"
+          : "Not visited";
 
         const openButton = document.createElement("button");
         openButton.type = "button";
@@ -759,7 +726,7 @@
           openCountryModal(country, openButton);
         });
 
-        countryCard.appendChild(visitToggle);
+        countryCard.appendChild(visitStatus);
         countryCard.appendChild(openButton);
         countriesGrid.appendChild(countryCard);
       }
