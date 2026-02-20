@@ -147,23 +147,28 @@
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     }
 
-    details.country {
+    .country {
       border: 1px solid var(--border);
       border-radius: 12px;
-      overflow: clip;
       background: linear-gradient(180deg, rgba(122, 162, 255, 0.08), rgba(255, 255, 255, 0));
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    details.country.visited {
+    .country.visited {
       border-color: var(--accent-2);
       background: linear-gradient(180deg, rgba(142, 240, 208, 0.18), rgba(255, 255, 255, 0));
       box-shadow: inset 0 0 0 1px rgba(142, 240, 208, 0.12);
     }
 
-    summary {
-      list-style: none;
+    .country-open {
+      border: 0;
+      background: transparent;
+      color: var(--text);
       cursor: pointer;
-      padding: 12px 14px;
+      padding: 0;
       font-weight: 650;
       letter-spacing: 0.01em;
       display: flex;
@@ -171,28 +176,27 @@
       align-items: center;
       outline: none;
       gap: 10px;
+      flex: 1;
+      text-align: left;
     }
 
-    summary::-webkit-details-marker {
-      display: none;
-    }
-
-    summary::after {
+    .country-open::after {
       content: "+";
       color: var(--accent);
       font-size: 1.1rem;
       line-height: 1;
-      transition: transform 160ms ease;
       margin-left: auto;
     }
 
-    details[open] summary::after {
-      content: "−";
+    .country-open:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: 8px;
     }
 
     .city-list {
       margin: 0;
-      padding: 0 14px 12px 30px;
+      padding: 0 0 0 24px;
       color: var(--muted);
       line-height: 1.7;
       font-size: 0.95rem;
@@ -207,7 +211,7 @@
       flex: 1;
     }
 
-    details.country.visited .country-name {
+    .country.visited .country-name {
       color: var(--accent-2);
       font-weight: 800;
     }
@@ -218,6 +222,81 @@
       accent-color: var(--accent-2);
       cursor: pointer;
       flex: 0 0 auto;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 50;
+    }
+
+    .modal.open {
+      display: flex;
+    }
+
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 8, 20, 0.76);
+    }
+
+    .modal-panel {
+      position: relative;
+      width: min(560px, 92vw);
+      max-height: min(76vh, 680px);
+      overflow: auto;
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px 18px 16px;
+      z-index: 1;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 1.2rem;
+      color: var(--accent-2);
+    }
+
+    .modal-info {
+      margin: 0 0 12px;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.95rem;
+    }
+
+    .modal-close {
+      border: 1px solid var(--border);
+      background: rgba(23, 33, 59, 0.95);
+      color: var(--muted);
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      flex: 0 0 auto;
+    }
+
+    .modal-close:hover {
+      color: var(--text);
+      border-color: var(--accent);
     }
 
     footer {
@@ -248,6 +327,18 @@
     <div id="app"></div>
     <footer>Travel Checklist • 100 countries • 5 cities each</footer>
   </main>
+
+  <div id="countryModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modalCountryTitle">
+    <div class="modal-backdrop" data-close-modal="true"></div>
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h3 id="modalCountryTitle" class="modal-title"></h3>
+        <button id="closeCountryModal" class="modal-close" type="button" aria-label="Close">×</button>
+      </div>
+      <p id="modalCountryInfo" class="modal-info"></p>
+      <ol id="modalCityList" class="city-list"></ol>
+    </div>
+  </div>
 
   <script>
     const travelData = [
@@ -395,10 +486,123 @@
     ];
 
     const app = document.getElementById("app");
+    const countryModal = document.getElementById("countryModal");
+    const closeCountryModal = document.getElementById("closeCountryModal");
+    const modalCountryTitle = document.getElementById("modalCountryTitle");
+    const modalCountryInfo = document.getElementById("modalCountryInfo");
+    const modalCityList = document.getElementById("modalCityList");
     const visitedStorageKey = "travelChecklistVisitedCountries";
     const visitedLocationsStorageKey = "travelChecklistVisitedLocations";
+    let lastTriggerButton = null;
 
     const defaultVisitedCountries = new Set(["United States", "United Kingdom", "Canada"]);
+    const countryFacts = {
+      "United States": { language: "English", currency: "U.S. Dollar (USD)", founded: "1776", food: "Hamburger", animal: "Bald Eagle" },
+      "Canada": { language: "English and French", currency: "Canadian Dollar (CAD)", founded: "1867", food: "Poutine", animal: "Beaver" },
+      "Mexico": { language: "Spanish", currency: "Mexican Peso (MXN)", founded: "1821", food: "Tacos", animal: "Golden Eagle" },
+      "Cuba": { language: "Spanish", currency: "Cuban Peso (CUP)", founded: "1902", food: "Ropa Vieja", animal: "Cuban Trogon" },
+      "Dominican Republic": { language: "Spanish", currency: "Dominican Peso (DOP)", founded: "1844", food: "La Bandera", animal: "Palmchat" },
+      "Jamaica": { language: "English", currency: "Jamaican Dollar (JMD)", founded: "1962", food: "Ackee and Saltfish", animal: "Doctor Bird" },
+      "Bahamas": { language: "English", currency: "Bahamian Dollar (BSD)", founded: "1973", food: "Cracked Conch", animal: "Flamingo" },
+      "Costa Rica": { language: "Spanish", currency: "Costa Rican Colón (CRC)", founded: "1821", food: "Gallo Pinto", animal: "White-tailed Deer" },
+      "Panama": { language: "Spanish", currency: "Balboa (PAB) and U.S. Dollar (USD)", founded: "1903", food: "Sancocho", animal: "Harpy Eagle" },
+      "Guatemala": { language: "Spanish", currency: "Guatemalan Quetzal (GTQ)", founded: "1821", food: "Pepián", animal: "Resplendent Quetzal" },
+      "Belize": { language: "English", currency: "Belize Dollar (BZD)", founded: "1981", food: "Rice and Beans", animal: "Baird's Tapir" },
+      "El Salvador": { language: "Spanish", currency: "U.S. Dollar (USD)", founded: "1841", food: "Pupusas", animal: "Torogoz" },
+      "Honduras": { language: "Spanish", currency: "Honduran Lempira (HNL)", founded: "1821", food: "Baleadas", animal: "White-tailed Deer" },
+      "Nicaragua": { language: "Spanish", currency: "Nicaraguan Córdoba (NIO)", founded: "1838", food: "Gallo Pinto", animal: "White-tailed Deer" },
+      "Puerto Rico": { language: "Spanish and English", currency: "U.S. Dollar (USD)", founded: "1952 (commonwealth)", food: "Mofongo", animal: "Coquí" },
+
+      "Brazil": { language: "Portuguese", currency: "Brazilian Real (BRL)", founded: "1822", food: "Feijoada", animal: "Jaguar" },
+      "Argentina": { language: "Spanish", currency: "Argentine Peso (ARS)", founded: "1816", food: "Asado", animal: "Rufous Hornero" },
+      "Chile": { language: "Spanish", currency: "Chilean Peso (CLP)", founded: "1818", food: "Pastel de Choclo", animal: "Huemul" },
+      "Peru": { language: "Spanish", currency: "Peruvian Sol (PEN)", founded: "1821", food: "Ceviche", animal: "Vicuña" },
+      "Colombia": { language: "Spanish", currency: "Colombian Peso (COP)", founded: "1810", food: "Bandeja Paisa", animal: "Andean Condor" },
+      "Ecuador": { language: "Spanish", currency: "U.S. Dollar (USD)", founded: "1830", food: "Encebollado", animal: "Andean Condor" },
+      "Uruguay": { language: "Spanish", currency: "Uruguayan Peso (UYU)", founded: "1825", food: "Chivito", animal: "Southern Lapwing" },
+      "Paraguay": { language: "Spanish and Guaraní", currency: "Paraguayan Guaraní (PYG)", founded: "1811", food: "Sopa Paraguaya", animal: "Pampas Fox" },
+      "Bolivia": { language: "Spanish and indigenous languages", currency: "Boliviano (BOB)", founded: "1825", food: "Salteñas", animal: "Llama" },
+      "Venezuela": { language: "Spanish", currency: "Venezuelan Bolívar (VES)", founded: "1811", food: "Arepas", animal: "Venezuelan Troupial" },
+      "Guyana": { language: "English", currency: "Guyanese Dollar (GYD)", founded: "1966", food: "Pepperpot", animal: "Jaguar" },
+      "Suriname": { language: "Dutch", currency: "Surinamese Dollar (SRD)", founded: "1975", food: "Pom", animal: "Jaguar" },
+
+      "France": { language: "French", currency: "Euro (EUR)", founded: "1792", food: "Coq au Vin", animal: "Gallic Rooster" },
+      "Spain": { language: "Spanish", currency: "Euro (EUR)", founded: "1479", food: "Paella", animal: "Spanish Bull" },
+      "Italy": { language: "Italian", currency: "Euro (EUR)", founded: "1861", food: "Pizza", animal: "Italian Wolf" },
+      "United Kingdom": { language: "English", currency: "Pound Sterling (GBP)", founded: "1707", food: "Fish and Chips", animal: "Lion" },
+      "Germany": { language: "German", currency: "Euro (EUR)", founded: "1871", food: "Sauerbraten", animal: "Federal Eagle" },
+      "Netherlands": { language: "Dutch", currency: "Euro (EUR)", founded: "1581", food: "Stamppot", animal: "Lion" },
+      "Portugal": { language: "Portuguese", currency: "Euro (EUR)", founded: "1143", food: "Bacalhau", animal: "Barcelos Rooster" },
+      "Greece": { language: "Greek", currency: "Euro (EUR)", founded: "1830", food: "Moussaka", animal: "Dolphin" },
+      "Switzerland": { language: "German, French, Italian, and Romansh", currency: "Swiss Franc (CHF)", founded: "1291", food: "Fondue", animal: "Alpine Ibex" },
+      "Austria": { language: "German", currency: "Euro (EUR)", founded: "1955", food: "Wiener Schnitzel", animal: "Golden Eagle" },
+      "Belgium": { language: "Dutch, French, and German", currency: "Euro (EUR)", founded: "1830", food: "Moules-frites", animal: "Lion" },
+      "Ireland": { language: "English and Irish", currency: "Euro (EUR)", founded: "1922", food: "Irish Stew", animal: "Irish Hare" },
+      "Croatia": { language: "Croatian", currency: "Euro (EUR)", founded: "1991", food: "Peka", animal: "Marten" },
+      "Czechia": { language: "Czech", currency: "Czech Koruna (CZK)", founded: "1993", food: "Svíčková", animal: "Lion" },
+      "Poland": { language: "Polish", currency: "Polish Złoty (PLN)", founded: "966", food: "Pierogi", animal: "White-tailed Eagle" },
+      "Hungary": { language: "Hungarian", currency: "Hungarian Forint (HUF)", founded: "1000", food: "Gulyás", animal: "Turul" },
+      "Turkey": { language: "Turkish", currency: "Turkish Lira (TRY)", founded: "1923", food: "Kebap", animal: "Gray Wolf" },
+      "Iceland": { language: "Icelandic", currency: "Icelandic Króna (ISK)", founded: "1944", food: "Lamb Soup", animal: "Gyrfalcon" },
+      "Norway": { language: "Norwegian", currency: "Norwegian Krone (NOK)", founded: "1905", food: "Fårikål", animal: "Moose" },
+      "Sweden": { language: "Swedish", currency: "Swedish Krona (SEK)", founded: "1523", food: "Köttbullar", animal: "Moose" },
+      "Denmark": { language: "Danish", currency: "Danish Krone (DKK)", founded: "965", food: "Smørrebrød", animal: "Mute Swan" },
+      "Finland": { language: "Finnish and Swedish", currency: "Euro (EUR)", founded: "1917", food: "Karjalanpiirakka", animal: "Brown Bear" },
+      "Romania": { language: "Romanian", currency: "Romanian Leu (RON)", founded: "1859", food: "Sarmale", animal: "Lynx" },
+      "Serbia": { language: "Serbian", currency: "Serbian Dinar (RSD)", founded: "2006", food: "Ćevapi", animal: "Gray Wolf" },
+
+      "Japan": { language: "Japanese", currency: "Japanese Yen (JPY)", founded: "660 BCE (traditional)", food: "Sushi", animal: "Green Pheasant" },
+      "China": { language: "Mandarin Chinese", currency: "Renminbi Yuan (CNY)", founded: "1949", food: "Peking Duck", animal: "Giant Panda" },
+      "Thailand": { language: "Thai", currency: "Thai Baht (THB)", founded: "1238", food: "Pad Thai", animal: "Thai Elephant" },
+      "Vietnam": { language: "Vietnamese", currency: "Vietnamese Đồng (VND)", founded: "1945", food: "Phở", animal: "Water Buffalo" },
+      "Singapore": { language: "English, Malay, Mandarin, and Tamil", currency: "Singapore Dollar (SGD)", founded: "1965", food: "Hainanese Chicken Rice", animal: "Lion" },
+      "Indonesia": { language: "Indonesian", currency: "Indonesian Rupiah (IDR)", founded: "1945", food: "Nasi Goreng", animal: "Komodo Dragon" },
+      "Malaysia": { language: "Malay", currency: "Malaysian Ringgit (MYR)", founded: "1957", food: "Nasi Lemak", animal: "Malayan Tiger" },
+      "India": { language: "Hindi and English", currency: "Indian Rupee (INR)", founded: "1947", food: "Biryani", animal: "Bengal Tiger" },
+      "United Arab Emirates": { language: "Arabic", currency: "UAE Dirham (AED)", founded: "1971", food: "Al Harees", animal: "Arabian Oryx" },
+      "South Korea": { language: "Korean", currency: "South Korean Won (KRW)", founded: "1948", food: "Kimchi", animal: "Siberian Tiger" },
+      "Philippines": { language: "Filipino and English", currency: "Philippine Peso (PHP)", founded: "1946", food: "Adobo", animal: "Carabao" },
+      "Sri Lanka": { language: "Sinhala and Tamil", currency: "Sri Lankan Rupee (LKR)", founded: "1948", food: "Rice and Curry", animal: "Sri Lankan Elephant" },
+      "Nepal": { language: "Nepali", currency: "Nepalese Rupee (NPR)", founded: "1768", food: "Dal Bhat", animal: "Cow" },
+      "Cambodia": { language: "Khmer", currency: "Cambodian Riel (KHR)", founded: "1953", food: "Amok Trey", animal: "Kouprey" },
+      "Laos": { language: "Lao", currency: "Lao Kip (LAK)", founded: "1953", food: "Larb", animal: "Asian Elephant" },
+      "Taiwan": { language: "Mandarin Chinese", currency: "New Taiwan Dollar (TWD)", founded: "1912", food: "Beef Noodle Soup", animal: "Formosan Black Bear" },
+      "Hong Kong": { language: "Chinese and English", currency: "Hong Kong Dollar (HKD)", founded: "1842", food: "Dim Sum", animal: "Bauhinia Butterfly" },
+      "Qatar": { language: "Arabic", currency: "Qatari Riyal (QAR)", founded: "1971", food: "Machboos", animal: "Arabian Oryx" },
+      "Saudi Arabia": { language: "Arabic", currency: "Saudi Riyal (SAR)", founded: "1932", food: "Kabsa", animal: "Arabian Camel" },
+      "Jordan": { language: "Arabic", currency: "Jordanian Dinar (JOD)", founded: "1946", food: "Mansaf", animal: "Arabian Oryx" },
+      "Israel": { language: "Hebrew", currency: "Israeli New Shekel (ILS)", founded: "1948", food: "Falafel", animal: "Mountain Gazelle" },
+      "Oman": { language: "Arabic", currency: "Omani Rial (OMR)", founded: "1650", food: "Shuwa", animal: "Arabian Oryx" },
+      "Kazakhstan": { language: "Kazakh and Russian", currency: "Kazakhstani Tenge (KZT)", founded: "1991", food: "Beshbarmak", animal: "Golden Eagle" },
+
+      "Morocco": { language: "Arabic and Amazigh", currency: "Moroccan Dirham (MAD)", founded: "1956", food: "Couscous", animal: "Barbary Lion" },
+      "Egypt": { language: "Arabic", currency: "Egyptian Pound (EGP)", founded: "1922", food: "Koshari", animal: "Steppe Eagle" },
+      "South Africa": { language: "11 official languages", currency: "South African Rand (ZAR)", founded: "1910", food: "Bobotie", animal: "Springbok" },
+      "Kenya": { language: "Swahili and English", currency: "Kenyan Shilling (KES)", founded: "1963", food: "Nyama Choma", animal: "Lion" },
+      "Tanzania": { language: "Swahili and English", currency: "Tanzanian Shilling (TZS)", founded: "1964", food: "Ugali", animal: "Giraffe" },
+      "Ethiopia": { language: "Amharic", currency: "Ethiopian Birr (ETB)", founded: "1941", food: "Injera", animal: "Lion" },
+      "Nigeria": { language: "English", currency: "Nigerian Naira (NGN)", founded: "1960", food: "Jollof Rice", animal: "Eagle" },
+      "Ghana": { language: "English", currency: "Ghanaian Cedi (GHS)", founded: "1957", food: "Fufu", animal: "Golden Eagle" },
+      "Tunisia": { language: "Arabic", currency: "Tunisian Dinar (TND)", founded: "1956", food: "Couscous", animal: "Fennec Fox" },
+      "Algeria": { language: "Arabic and Tamazight", currency: "Algerian Dinar (DZD)", founded: "1962", food: "Couscous", animal: "Fennec Fox" },
+      "Rwanda": { language: "Kinyarwanda, English, and French", currency: "Rwandan Franc (RWF)", founded: "1962", food: "Ugali", animal: "Mountain Gorilla" },
+      "Uganda": { language: "English and Swahili", currency: "Ugandan Shilling (UGX)", founded: "1962", food: "Matoke", animal: "Gray Crowned Crane" },
+      "Namibia": { language: "English", currency: "Namibian Dollar (NAD)", founded: "1990", food: "Kapana", animal: "Gemsbok" },
+      "Botswana": { language: "English and Setswana", currency: "Botswana Pula (BWP)", founded: "1966", food: "Seswaa", animal: "Zebra" },
+      "Mauritius": { language: "English and French", currency: "Mauritian Rupee (MUR)", founded: "1968", food: "Dholl Puri", animal: "Dodo" },
+      "Seychelles": { language: "Seychellois Creole, English, and French", currency: "Seychellois Rupee (SCR)", founded: "1976", food: "Grilled Fish", animal: "Aldabra Giant Tortoise" },
+
+      "Australia": { language: "English", currency: "Australian Dollar (AUD)", founded: "1901", food: "Meat Pie", animal: "Red Kangaroo" },
+      "New Zealand": { language: "English, Māori, and NZ Sign Language", currency: "New Zealand Dollar (NZD)", founded: "1907", food: "Hāngī", animal: "Kiwi" },
+      "Fiji": { language: "English, Fijian, and Fiji Hindi", currency: "Fijian Dollar (FJD)", founded: "1970", food: "Kokoda", animal: "Fiji Banded Iguana" },
+      "Papua New Guinea": { language: "English, Tok Pisin, and Hiri Motu", currency: "Papua New Guinean Kina (PGK)", founded: "1975", food: "Mumu", animal: "Bird-of-Paradise" },
+      "Samoa": { language: "Samoan and English", currency: "Samoan Tālā (WST)", founded: "1962", food: "Palusami", animal: "Manumea" },
+      "Tonga": { language: "Tongan and English", currency: "Tongan Paʻanga (TOP)", founded: "1970", food: "Lu Pulu", animal: "Humpback Whale" },
+      "Vanuatu": { language: "Bislama, English, and French", currency: "Vanuatu Vatu (VUV)", founded: "1980", food: "Laplap", animal: "Vanuatu Flying Fox" },
+      "Solomon Islands": { language: "English", currency: "Solomon Islands Dollar (SBD)", founded: "1978", food: "Poi", animal: "Dugong" },
+      "Palau": { language: "Palauan and English", currency: "U.S. Dollar (USD)", founded: "1994", food: "Fruit Bat Soup", animal: "Palau Dugong" },
+      "French Polynesia": { language: "French and Tahitian", currency: "CFP Franc (XPF)", founded: "1880", food: "Poisson Cru", animal: "Tahitian Black Pearl Oyster" }
+    };
     const defaultVisitedLocations = {
       "United Kingdom": ["London", "Cambridge"],
       "United States": [
@@ -458,6 +662,45 @@
       localStorage.setItem(visitedLocationsStorageKey, JSON.stringify(serializable));
     }
 
+    function openCountryModal(country, triggerButton) {
+      const facts = countryFacts[country.name] || {
+        language: "Language information coming soon",
+        currency: "Currency information coming soon",
+        founded: "Founding year coming soon",
+        food: "National food coming soon",
+        animal: "National animal coming soon"
+      };
+
+      modalCountryTitle.textContent = country.name;
+      modalCountryInfo.textContent = `${country.name} primarily speaks ${facts.language}, uses the ${facts.currency}, and was founded in ${facts.founded}. Its national food is ${facts.food}, and its national animal is the ${facts.animal}.`;
+      modalCityList.innerHTML = "";
+
+      for (const city of country.cities) {
+        const li = document.createElement("li");
+        li.textContent = city;
+
+        const normalizedCity = normalizeName(city);
+        if (visitedLocationsByCountry[country.name]?.has(normalizedCity)) {
+          li.classList.add("location-visited");
+        }
+
+        modalCityList.appendChild(li);
+      }
+
+      lastTriggerButton = triggerButton;
+      countryModal.classList.add("open");
+      countryModal.setAttribute("aria-hidden", "false");
+      closeCountryModal.focus();
+    }
+
+    function closeModal() {
+      countryModal.classList.remove("open");
+      countryModal.setAttribute("aria-hidden", "true");
+      if (lastTriggerButton) {
+        lastTriggerButton.focus();
+      }
+    }
+
     saveVisitedCountries();
     saveVisitedLocations();
 
@@ -473,24 +716,18 @@
       countriesGrid.className = "countries";
 
       for (const country of section.countries) {
-        const details = document.createElement("details");
-        details.className = "country";
-        details.dataset.country = country.name;
+        const countryCard = document.createElement("div");
+        countryCard.className = "country";
+        countryCard.dataset.country = country.name;
         if (visitedCountries.has(country.name) || hasVisitedLocations(country.name)) {
-          details.classList.add("visited");
+          countryCard.classList.add("visited");
         }
-
-        const summary = document.createElement("summary");
 
         const visitToggle = document.createElement("input");
         visitToggle.className = "visit-toggle";
         visitToggle.type = "checkbox";
         visitToggle.checked = visitedCountries.has(country.name) || hasVisitedLocations(country.name);
         visitToggle.ariaLabel = `Mark ${country.name} as visited`;
-
-        visitToggle.addEventListener("click", (event) => {
-          event.stopPropagation();
-        });
 
         visitToggle.addEventListener("change", () => {
           if (visitToggle.checked) {
@@ -500,39 +737,31 @@
           }
 
           if (visitedCountries.has(country.name) || hasVisitedLocations(country.name)) {
-            details.classList.add("visited");
+            countryCard.classList.add("visited");
           } else {
-            details.classList.remove("visited");
+            countryCard.classList.remove("visited");
           }
 
           saveVisitedCountries();
         });
 
+        const openButton = document.createElement("button");
+        openButton.type = "button";
+        openButton.className = "country-open";
+        openButton.ariaLabel = `Open ${country.name} locations`;
+
         const countryName = document.createElement("span");
         countryName.className = "country-name";
         countryName.textContent = country.name;
 
-        summary.appendChild(visitToggle);
-        summary.appendChild(countryName);
+        openButton.appendChild(countryName);
+        openButton.addEventListener("click", () => {
+          openCountryModal(country, openButton);
+        });
 
-        const cityList = document.createElement("ol");
-        cityList.className = "city-list";
-
-        for (const city of country.cities) {
-          const li = document.createElement("li");
-          li.textContent = city;
-
-          const normalizedCity = normalizeName(city);
-          if (visitedLocationsByCountry[country.name]?.has(normalizedCity)) {
-            li.classList.add("location-visited");
-          }
-
-          cityList.appendChild(li);
-        }
-
-        details.appendChild(summary);
-        details.appendChild(cityList);
-        countriesGrid.appendChild(details);
+        countryCard.appendChild(visitToggle);
+        countryCard.appendChild(openButton);
+        countriesGrid.appendChild(countryCard);
       }
 
       continentEl.appendChild(countriesGrid);
@@ -542,13 +771,26 @@
     const countrySearch = document.getElementById("countrySearch");
     const clearSearch = document.getElementById("clearSearch");
 
+    closeCountryModal.addEventListener("click", closeModal);
+    countryModal.addEventListener("click", (event) => {
+      if (event.target.dataset.closeModal === "true") {
+        closeModal();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && countryModal.classList.contains("open")) {
+        closeModal();
+      }
+    });
+
     function applyCountryFilter() {
       const query = countrySearch.value.trim().toLowerCase();
       clearSearch.hidden = query.length === 0;
       const continents = app.querySelectorAll(".continent");
 
       for (const continent of continents) {
-        const countries = continent.querySelectorAll("details.country");
+        const countries = continent.querySelectorAll(".country");
         let visibleCount = 0;
 
         for (const country of countries) {
@@ -556,11 +798,6 @@
           const matches = countryName.includes(query);
 
           country.style.display = matches ? "" : "none";
-          if (!matches) {
-            country.open = false;
-          } else if (query.length > 0) {
-            country.open = true;
-          }
 
           if (matches) {
             visibleCount += 1;
