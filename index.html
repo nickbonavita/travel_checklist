@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Top 100 Traveled Countries</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-soft: #121a2f;
+      --card: #17213b;
+      --text: #eaf0ff;
+      --muted: #9fb0d9;
+      --accent: #7aa2ff;
+      --accent-2: #8ef0d0;
+      --border: #2c3b64;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 8%, #233869 0%, transparent 24%),
+        radial-gradient(circle at 88% 12%, #1d544f 0%, transparent 22%),
+        linear-gradient(150deg, var(--bg) 0%, #090e1d 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      width: min(1160px, 92vw);
+      margin: 48px auto 80px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(122, 162, 255, 0.24), rgba(142, 240, 208, 0.14));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(4px);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 2.6vw, 2.8rem);
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.04rem;
+      line-height: 1.5;
+      max-width: 70ch;
+    }
+
+    .subtitle-note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .search-wrap {
+      margin-top: 18px;
+    }
+
+    .search-field {
+      position: relative;
+      width: min(520px, 100%);
+    }
+
+    .search-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .search-input {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: rgba(10, 16, 34, 0.7);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 11px 42px 11px 14px;
+      font-size: 0.97rem;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(122, 162, 255, 0.18);
+    }
+
+    .clear-search {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 1px solid var(--border);
+      background: rgba(23, 33, 59, 0.95);
+      color: var(--muted);
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.92rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .clear-search:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    .clear-search[hidden] {
+      display: none;
+    }
+
+    .continent {
+      background: rgba(18, 26, 47, 0.74);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+
+    .continent h2 {
+      margin: 2px 0 14px;
+      font-size: 1.3rem;
+      color: var(--accent-2);
+      letter-spacing: 0.01em;
+    }
+
+    .countries {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+
+    details.country {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: clip;
+      background: linear-gradient(180deg, rgba(122, 162, 255, 0.08), rgba(255, 255, 255, 0));
+    }
+
+    details.country.visited {
+      border-color: var(--accent-2);
+      background: linear-gradient(180deg, rgba(142, 240, 208, 0.18), rgba(255, 255, 255, 0));
+      box-shadow: inset 0 0 0 1px rgba(142, 240, 208, 0.12);
+    }
+
+    summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 12px 14px;
+      font-weight: 650;
+      letter-spacing: 0.01em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      outline: none;
+      gap: 10px;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary::after {
+      content: "+";
+      color: var(--accent);
+      font-size: 1.1rem;
+      line-height: 1;
+      transition: transform 160ms ease;
+      margin-left: auto;
+    }
+
+    details[open] summary::after {
+      content: "−";
+    }
+
+    .city-list {
+      margin: 0;
+      padding: 0 14px 12px 30px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 0.95rem;
+    }
+
+    .city-list li.location-visited {
+      color: var(--accent-2);
+      font-weight: 700;
+    }
+
+    .country-name {
+      flex: 1;
+    }
+
+    details.country.visited .country-name {
+      color: var(--accent-2);
+      font-weight: 800;
+    }
+
+    .visit-toggle {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent-2);
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+
+    footer {
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+      margin-top: 28px;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <h1>Top 100 Most Traveled Countries</h1>
+      <p class="subtitle">
+        Organized by continent. Click any country to reveal locations (top 5 cities for most countries, all states/territories for the U.S., and all provinces/territories for Canada).
+      </p>
+      <p class="subtitle-note">Check a country to mark it as visited.</p>
+      <div class="search-wrap">
+        <label class="search-label" for="countrySearch">Find a country</label>
+        <div class="search-field">
+          <input id="countrySearch" class="search-input" type="search" placeholder="Type a country name..." autocomplete="off" />
+          <button id="clearSearch" class="clear-search" type="button" aria-label="Clear search" hidden>×</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="app"></div>
+    <footer>Travel Checklist • 100 countries • 5 cities each</footer>
+  </main>
+
+  <script>
+    const travelData = [
+      {
+        continent: "North America",
+        countries: [
+          { name: "United States", cities: [
+            "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia",
+            "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland",
+            "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey",
+            "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
+            "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
+            "American Samoa", "Guam", "Northern Mariana Islands", "Puerto Rico", "U.S. Virgin Islands"
+          ] },
+          { name: "Canada", cities: [
+            "Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan",
+            "Northwest Territories", "Nunavut", "Yukon"
+          ] },
+          { name: "Mexico", cities: ["Mexico City", "Cancún", "Guadalajara", "Monterrey", "Puerto Vallarta"] },
+          { name: "Cuba", cities: ["Havana", "Varadero", "Santiago de Cuba", "Trinidad", "Cienfuegos"] },
+          { name: "Dominican Republic", cities: ["Santo Domingo", "Punta Cana", "Santiago de los Caballeros", "Puerto Plata", "La Romana"] },
+          { name: "Jamaica", cities: ["Kingston", "Montego Bay", "Negril", "Ocho Rios", "Port Antonio"] },
+          { name: "Bahamas", cities: ["Nassau", "Freeport", "Marsh Harbour", "George Town", "Bimini"] },
+          { name: "Costa Rica", cities: ["San José", "Liberia", "La Fortuna", "Tamarindo", "Puerto Viejo"] },
+          { name: "Panama", cities: ["Panama City", "Bocas del Toro", "Boquete", "Colón", "David"] },
+          { name: "Guatemala", cities: ["Guatemala City", "Antigua Guatemala", "Flores", "Quetzaltenango", "Panajachel"] },
+          { name: "Belize", cities: ["Belize City", "San Pedro", "Caye Caulker", "Placencia", "San Ignacio"] },
+          { name: "El Salvador", cities: ["San Salvador", "Santa Ana", "La Libertad", "Suchitoto", "El Tunco"] },
+          { name: "Honduras", cities: ["Tegucigalpa", "San Pedro Sula", "La Ceiba", "Roatán", "Copán Ruinas"] },
+          { name: "Nicaragua", cities: ["Managua", "Granada", "León", "San Juan del Sur", "Ometepe"] },
+          { name: "Puerto Rico", cities: ["San Juan", "Ponce", "Mayagüez", "Fajardo", "Rincón"] }
+        ]
+      },
+      {
+        continent: "South America",
+        countries: [
+          { name: "Brazil", cities: ["Rio de Janeiro", "São Paulo", "Salvador", "Brasília", "Florianópolis"] },
+          { name: "Argentina", cities: ["Buenos Aires", "Córdoba", "Mendoza", "Bariloche", "Rosario"] },
+          { name: "Chile", cities: ["Santiago", "Valparaíso", "Viña del Mar", "San Pedro de Atacama", "Puerto Varas"] },
+          { name: "Peru", cities: ["Lima", "Cusco", "Arequipa", "Trujillo", "Iquitos"] },
+          { name: "Colombia", cities: ["Bogotá", "Medellín", "Cartagena", "Cali", "Barranquilla"] },
+          { name: "Ecuador", cities: ["Quito", "Guayaquil", "Cuenca", "Baños", "Puerto Ayora"] },
+          { name: "Uruguay", cities: ["Montevideo", "Punta del Este", "Colonia del Sacramento", "Piriápolis", "Salto"] },
+          { name: "Paraguay", cities: ["Asunción", "Ciudad del Este", "Encarnación", "San Bernardino", "Luque"] },
+          { name: "Bolivia", cities: ["La Paz", "Santa Cruz de la Sierra", "Sucre", "Cochabamba", "Uyuni"] },
+          { name: "Venezuela", cities: ["Caracas", "Maracaibo", "Valencia", "Mérida", "Margarita Island"] },
+          { name: "Guyana", cities: ["Georgetown", "New Amsterdam", "Linden", "Bartica", "Lethem"] },
+          { name: "Suriname", cities: ["Paramaribo", "Nieuw Nickerie", "Lelydorp", "Moengo", "Albina"] }
+        ]
+      },
+      {
+        continent: "Europe",
+        countries: [
+          { name: "France", cities: ["Paris", "Nice", "Lyon", "Marseille", "Bordeaux"] },
+          { name: "Spain", cities: ["Barcelona", "Madrid", "Seville", "Valencia", "Granada"] },
+          { name: "Italy", cities: ["Rome", "Venice", "Florence", "Milan", "Naples"] },
+          { name: "United Kingdom", cities: ["London", "Cambridge", "Edinburgh", "Manchester", "Liverpool", "Bath"] },
+          { name: "Germany", cities: ["Berlin", "Munich", "Hamburg", "Frankfurt", "Cologne"] },
+          { name: "Netherlands", cities: ["Amsterdam", "Rotterdam", "The Hague", "Utrecht", "Eindhoven"] },
+          { name: "Portugal", cities: ["Lisbon", "Porto", "Faro", "Coimbra", "Braga"] },
+          { name: "Greece", cities: ["Athens", "Thessaloniki", "Santorini", "Heraklion", "Patras"] },
+          { name: "Switzerland", cities: ["Zurich", "Geneva", "Lucerne", "Bern", "Interlaken"] },
+          { name: "Austria", cities: ["Vienna", "Salzburg", "Innsbruck", "Graz", "Linz"] },
+          { name: "Belgium", cities: ["Brussels", "Bruges", "Antwerp", "Ghent", "Leuven"] },
+          { name: "Ireland", cities: ["Dublin", "Cork", "Galway", "Limerick", "Kilkenny"] },
+          { name: "Croatia", cities: ["Zagreb", "Dubrovnik", "Split", "Zadar", "Rijeka"] },
+          { name: "Czechia", cities: ["Prague", "Brno", "Český Krumlov", "Plzeň", "Olomouc"] },
+          { name: "Poland", cities: ["Warsaw", "Kraków", "Gdańsk", "Wrocław", "Poznań"] },
+          { name: "Hungary", cities: ["Budapest", "Debrecen", "Szeged", "Pécs", "Győr"] },
+          { name: "Turkey", cities: ["Istanbul", "Ankara", "Izmir", "Antalya", "Bursa"] },
+          { name: "Iceland", cities: ["Reykjavik", "Akureyri", "Selfoss", "Húsavík", "Vík"] },
+          { name: "Norway", cities: ["Oslo", "Bergen", "Trondheim", "Stavanger", "Tromsø"] },
+          { name: "Sweden", cities: ["Stockholm", "Gothenburg", "Malmö", "Uppsala", "Kiruna"] },
+          { name: "Denmark", cities: ["Copenhagen", "Aarhus", "Odense", "Aalborg", "Roskilde"] },
+          { name: "Finland", cities: ["Helsinki", "Turku", "Tampere", "Rovaniemi", "Oulu"] },
+          { name: "Romania", cities: ["Bucharest", "Cluj-Napoca", "Brașov", "Timișoara", "Sibiu"] },
+          { name: "Serbia", cities: ["Belgrade", "Novi Sad", "Niš", "Subotica", "Kragujevac"] }
+        ]
+      },
+      {
+        continent: "Asia",
+        countries: [
+          { name: "Japan", cities: ["Tokyo", "Kyoto", "Osaka", "Sapporo", "Fukuoka"] },
+          { name: "China", cities: ["Beijing", "Shanghai", "Xi'an", "Guangzhou", "Chengdu"] },
+          { name: "Thailand", cities: ["Bangkok", "Chiang Mai", "Phuket", "Pattaya", "Krabi"] },
+          { name: "Vietnam", cities: ["Ho Chi Minh City", "Hanoi", "Da Nang", "Hoi An", "Nha Trang"] },
+          { name: "Singapore", cities: ["Marina Bay", "Sentosa", "Chinatown", "Little India", "Orchard"] },
+          { name: "Indonesia", cities: ["Jakarta", "Bali", "Yogyakarta", "Surabaya", "Bandung"] },
+          { name: "Malaysia", cities: ["Kuala Lumpur", "George Town", "Malacca", "Johor Bahru", "Kota Kinabalu"] },
+          { name: "India", cities: ["Delhi", "Mumbai", "Jaipur", "Goa", "Bengaluru"] },
+          { name: "United Arab Emirates", cities: ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah"] },
+          { name: "South Korea", cities: ["Seoul", "Busan", "Incheon", "Daegu", "Jeju City"] },
+          { name: "Philippines", cities: ["Manila", "Cebu City", "Davao", "Boracay", "Baguio"] },
+          { name: "Sri Lanka", cities: ["Colombo", "Kandy", "Galle", "Ella", "Negombo"] },
+          { name: "Nepal", cities: ["Kathmandu", "Pokhara", "Lalitpur", "Bhaktapur", "Chitwan"] },
+          { name: "Cambodia", cities: ["Phnom Penh", "Siem Reap", "Sihanoukville", "Battambang", "Kampot"] },
+          { name: "Laos", cities: ["Vientiane", "Luang Prabang", "Vang Vieng", "Pakse", "Savannakhet"] },
+          { name: "Taiwan", cities: ["Taipei", "Kaohsiung", "Taichung", "Tainan", "Hualien"] },
+          { name: "Hong Kong", cities: ["Central", "Tsim Sha Tsui", "Mong Kok", "Causeway Bay", "Wan Chai"] },
+          { name: "Qatar", cities: ["Doha", "Al Wakrah", "Al Khor", "Lusail", "Umm Salal"] },
+          { name: "Saudi Arabia", cities: ["Riyadh", "Jeddah", "Mecca", "Medina", "Dammam"] },
+          { name: "Jordan", cities: ["Amman", "Petra", "Aqaba", "Jerash", "Madaba"] },
+          { name: "Israel", cities: ["Jerusalem", "Tel Aviv", "Haifa", "Eilat", "Nazareth"] },
+          { name: "Oman", cities: ["Muscat", "Salalah", "Nizwa", "Sohar", "Sur"] },
+          { name: "Kazakhstan", cities: ["Almaty", "Astana", "Shymkent", "Aktau", "Karaganda"] }
+        ]
+      },
+      {
+        continent: "Africa",
+        countries: [
+          { name: "Morocco", cities: ["Marrakesh", "Casablanca", "Fez", "Rabat", "Tangier"] },
+          { name: "Egypt", cities: ["Cairo", "Alexandria", "Luxor", "Aswan", "Sharm El-Sheikh"] },
+          { name: "South Africa", cities: ["Cape Town", "Johannesburg", "Durban", "Pretoria", "Port Elizabeth"] },
+          { name: "Kenya", cities: ["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Malindi"] },
+          { name: "Tanzania", cities: ["Dar es Salaam", "Zanzibar City", "Arusha", "Mwanza", "Dodoma"] },
+          { name: "Ethiopia", cities: ["Addis Ababa", "Gondar", "Bahir Dar", "Lalibela", "Dire Dawa"] },
+          { name: "Nigeria", cities: ["Lagos", "Abuja", "Kano", "Port Harcourt", "Ibadan"] },
+          { name: "Ghana", cities: ["Accra", "Kumasi", "Takoradi", "Tamale", "Cape Coast"] },
+          { name: "Tunisia", cities: ["Tunis", "Sousse", "Sfax", "Hammamet", "Djerba"] },
+          { name: "Algeria", cities: ["Algiers", "Oran", "Constantine", "Annaba", "Tlemcen"] },
+          { name: "Rwanda", cities: ["Kigali", "Butare", "Gisenyi", "Musanze", "Kibuye"] },
+          { name: "Uganda", cities: ["Kampala", "Entebbe", "Jinja", "Mbarara", "Gulu"] },
+          { name: "Namibia", cities: ["Windhoek", "Swakopmund", "Walvis Bay", "Lüderitz", "Rundu"] },
+          { name: "Botswana", cities: ["Gaborone", "Maun", "Francistown", "Kasane", "Serowe"] },
+          { name: "Mauritius", cities: ["Port Louis", "Grand Baie", "Curepipe", "Quatre Bornes", "Flic en Flac"] },
+          { name: "Seychelles", cities: ["Victoria", "Beau Vallon", "Anse Royale", "Takamaka", "Baie Lazare"] }
+        ]
+      },
+      {
+        continent: "Oceania",
+        countries: [
+          { name: "Australia", cities: ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide"] },
+          { name: "New Zealand", cities: ["Auckland", "Wellington", "Christchurch", "Queenstown", "Dunedin"] },
+          { name: "Fiji", cities: ["Nadi", "Suva", "Lautoka", "Labasa", "Savusavu"] },
+          { name: "Papua New Guinea", cities: ["Port Moresby", "Lae", "Mount Hagen", "Madang", "Goroka"] },
+          { name: "Samoa", cities: ["Apia", "Salelologa", "Safotu", "Mulifanua", "Leulumoega"] },
+          { name: "Tonga", cities: ["Nuku'alofa", "Neiafu", "Haveluliku", "Pangai", "Kolonga"] },
+          { name: "Vanuatu", cities: ["Port Vila", "Luganville", "Isangel", "Lakatoro", "Sola"] },
+          { name: "Solomon Islands", cities: ["Honiara", "Auki", "Gizo", "Buala", "Munda"] },
+          { name: "Palau", cities: ["Ngerulmud", "Koror", "Melekeok", "Airai", "Kloulklubed"] },
+          { name: "French Polynesia", cities: ["Papeete", "Faaa", "Punaauia", "Mahina", "Bora Bora"] }
+        ]
+      }
+    ];
+
+    const app = document.getElementById("app");
+    const visitedStorageKey = "travelChecklistVisitedCountries";
+    const visitedLocationsStorageKey = "travelChecklistVisitedLocations";
+
+    const defaultVisitedCountries = new Set(["United States", "United Kingdom", "Canada"]);
+    const defaultVisitedLocations = {
+      "United Kingdom": ["London", "Cambridge"],
+      "United States": [
+        "Maine", "New Hampshire", "Vermont", "Massachusetts", "Connecticut", "Rhode Island", "New York", "New Jersey", "Pennsylvania", "Delaware", "Florida"
+      ],
+      "Canada": ["Ontario", "Quebec"]
+    };
+
+    const hasStoredVisitedCountries = localStorage.getItem(visitedStorageKey) !== null;
+    const storedVisitedCountries = JSON.parse(localStorage.getItem(visitedStorageKey) || "[]");
+    const visitedCountries = new Set(hasStoredVisitedCountries ? storedVisitedCountries : [...defaultVisitedCountries]);
+
+    const hasStoredVisitedLocations = localStorage.getItem(visitedLocationsStorageKey) !== null;
+    const storedVisitedLocationsRaw = JSON.parse(localStorage.getItem(visitedLocationsStorageKey) || "{}");
+    const visitedLocationsByCountry = {};
+
+    function normalizeName(value) {
+      return value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    }
+
+    function hydrateCountryLocations(countryName, locations = []) {
+      if (!visitedLocationsByCountry[countryName]) {
+        visitedLocationsByCountry[countryName] = new Set();
+      }
+
+      for (const location of locations) {
+        visitedLocationsByCountry[countryName].add(normalizeName(location));
+      }
+    }
+
+    if (!hasStoredVisitedLocations) {
+      for (const [countryName, locations] of Object.entries(defaultVisitedLocations)) {
+        hydrateCountryLocations(countryName, locations);
+      }
+    }
+
+    for (const [countryName, locations] of Object.entries(storedVisitedLocationsRaw)) {
+      hydrateCountryLocations(countryName, locations);
+    }
+
+    function hasVisitedLocations(countryName) {
+      return (visitedLocationsByCountry[countryName]?.size || 0) > 0;
+    }
+
+    function saveVisitedCountries() {
+      localStorage.setItem(visitedStorageKey, JSON.stringify([...visitedCountries]));
+    }
+
+    function saveVisitedLocations() {
+      const serializable = {};
+      for (const [countryName, locationSet] of Object.entries(visitedLocationsByCountry)) {
+        serializable[countryName] = [...locationSet];
+      }
+      localStorage.setItem(visitedLocationsStorageKey, JSON.stringify(serializable));
+    }
+
+    saveVisitedCountries();
+    saveVisitedLocations();
+
+    for (const section of travelData) {
+      const continentEl = document.createElement("section");
+      continentEl.className = "continent";
+
+      const title = document.createElement("h2");
+      title.textContent = section.continent;
+      continentEl.appendChild(title);
+
+      const countriesGrid = document.createElement("div");
+      countriesGrid.className = "countries";
+
+      for (const country of section.countries) {
+        const details = document.createElement("details");
+        details.className = "country";
+        details.dataset.country = country.name;
+        if (visitedCountries.has(country.name) || hasVisitedLocations(country.name)) {
+          details.classList.add("visited");
+        }
+
+        const summary = document.createElement("summary");
+
+        const visitToggle = document.createElement("input");
+        visitToggle.className = "visit-toggle";
+        visitToggle.type = "checkbox";
+        visitToggle.checked = visitedCountries.has(country.name) || hasVisitedLocations(country.name);
+        visitToggle.ariaLabel = `Mark ${country.name} as visited`;
+
+        visitToggle.addEventListener("click", (event) => {
+          event.stopPropagation();
+        });
+
+        visitToggle.addEventListener("change", () => {
+          if (visitToggle.checked) {
+            visitedCountries.add(country.name);
+          } else {
+            visitedCountries.delete(country.name);
+          }
+
+          if (visitedCountries.has(country.name) || hasVisitedLocations(country.name)) {
+            details.classList.add("visited");
+          } else {
+            details.classList.remove("visited");
+          }
+
+          saveVisitedCountries();
+        });
+
+        const countryName = document.createElement("span");
+        countryName.className = "country-name";
+        countryName.textContent = country.name;
+
+        summary.appendChild(visitToggle);
+        summary.appendChild(countryName);
+
+        const cityList = document.createElement("ol");
+        cityList.className = "city-list";
+
+        for (const city of country.cities) {
+          const li = document.createElement("li");
+          li.textContent = city;
+
+          const normalizedCity = normalizeName(city);
+          if (visitedLocationsByCountry[country.name]?.has(normalizedCity)) {
+            li.classList.add("location-visited");
+          }
+
+          cityList.appendChild(li);
+        }
+
+        details.appendChild(summary);
+        details.appendChild(cityList);
+        countriesGrid.appendChild(details);
+      }
+
+      continentEl.appendChild(countriesGrid);
+      app.appendChild(continentEl);
+    }
+
+    const countrySearch = document.getElementById("countrySearch");
+    const clearSearch = document.getElementById("clearSearch");
+
+    function applyCountryFilter() {
+      const query = countrySearch.value.trim().toLowerCase();
+      clearSearch.hidden = query.length === 0;
+      const continents = app.querySelectorAll(".continent");
+
+      for (const continent of continents) {
+        const countries = continent.querySelectorAll("details.country");
+        let visibleCount = 0;
+
+        for (const country of countries) {
+          const countryName = country.dataset.country.toLowerCase();
+          const matches = countryName.includes(query);
+
+          country.style.display = matches ? "" : "none";
+          if (!matches) {
+            country.open = false;
+          } else if (query.length > 0) {
+            country.open = true;
+          }
+
+          if (matches) {
+            visibleCount += 1;
+          }
+        }
+
+        continent.style.display = visibleCount > 0 ? "" : "none";
+      }
+    }
+
+    countrySearch.addEventListener("input", () => {
+      applyCountryFilter();
+    });
+
+    clearSearch.addEventListener("click", () => {
+      countrySearch.value = "";
+      applyCountryFilter();
+      countrySearch.focus();
+    });
+  </script>
+</body>
+</html>
