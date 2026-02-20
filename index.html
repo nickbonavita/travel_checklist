@@ -13,6 +13,7 @@
       --muted: #9fb0d9;
       --accent: #7aa2ff;
       --accent-2: #8ef0d0;
+      --accent-gold: #f4cf68;
       --border: #2c3b64;
     }
 
@@ -163,6 +164,12 @@
       box-shadow: inset 0 0 0 1px rgba(142, 240, 208, 0.12);
     }
 
+    .country.full-visited {
+      border-color: var(--accent-gold);
+      background: linear-gradient(180deg, rgba(244, 207, 104, 0.2), rgba(255, 255, 255, 0));
+      box-shadow: inset 0 0 0 1px rgba(244, 207, 104, 0.14);
+    }
+
     .country-open {
       border: 0;
       background: transparent;
@@ -216,6 +223,10 @@
       font-weight: 800;
     }
 
+    .country.full-visited .country-name {
+      color: var(--accent-gold);
+    }
+
     .visit-status {
       border: 1px solid var(--border);
       color: var(--muted);
@@ -233,6 +244,12 @@
       border-color: var(--accent-2);
       background: var(--accent-2);
       font-weight: 700;
+    }
+
+    .country.full-visited .visit-status {
+      color: #2a1a00;
+      border-color: var(--accent-gold);
+      background: var(--accent-gold);
     }
 
     .modal {
@@ -325,7 +342,7 @@
       <p class="subtitle">
         Organized by continent. Click any country to reveal locations
       </p>
-      <p class="subtitle-note"></p>
+      <p class="subtitle-note">Countries with all locations visited are highlighted in gold.</p>
       <div class="search-wrap">
         <label class="search-label" for="countrySearch">Find a country</label>
         <div class="search-field">
@@ -648,6 +665,15 @@
       return (visitedLocationsByCountry[countryName]?.size || 0) > 0;
     }
 
+    function isFullyVisited(country) {
+      const visitedLocationSet = visitedLocationsByCountry[country.name];
+      if (!visitedLocationSet || visitedLocationSet.size === 0) {
+        return false;
+      }
+
+      return country.cities.every((city) => visitedLocationSet.has(normalizeName(city)));
+    }
+
     function openCountryModal(country, triggerButton) {
       const facts = countryFacts[country.name] || {
         language: "Language information coming soon",
@@ -702,15 +728,24 @@
         const countryCard = document.createElement("div");
         countryCard.className = "country";
         countryCard.dataset.country = country.name;
-        if (visitedCountries.has(country.name) || hasVisitedLocations(country.name)) {
+
+        const hasAnyVisited = visitedCountries.has(country.name) || hasVisitedLocations(country.name);
+        const fullyVisited = isFullyVisited(country);
+
+        if (hasAnyVisited) {
           countryCard.classList.add("visited");
+        }
+        if (fullyVisited) {
+          countryCard.classList.add("full-visited");
         }
 
         const visitStatus = document.createElement("span");
         visitStatus.className = "visit-status";
-        visitStatus.textContent = visitedCountries.has(country.name) || hasVisitedLocations(country.name)
-          ? "Visited"
-          : "Not visited";
+        visitStatus.textContent = fullyVisited
+          ? "Fully visited"
+          : hasAnyVisited
+            ? "Visited"
+            : "Not visited";
 
         const openButton = document.createElement("button");
         openButton.type = "button";
